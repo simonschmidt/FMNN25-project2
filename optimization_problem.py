@@ -37,6 +37,8 @@ class OptimizationProblem(object):
         return fh
 
     def _second_deriv(self,i,j,x,dx=0.00001):
+        """ Numerically calculated ∂f/∂xᵢx_j at point x
+        """
         dxi = scipy.zeros(self.shape)
         dxj = scipy.zeros(self.shape)
         dxi[i] = dx
@@ -78,13 +80,13 @@ class OptimizationProblem(object):
 
 class Newton(OptimizationProblem):
     # typ klar
-    def argmin(self,start=None,tolerange=0.001,maxit=1000,stepsize=0.5):
+    def argmin(self,start=None,tolerance=0.001,maxit=1000,stepsize=0.5):
         if start == None:
             start = scipy.zeros(self.shape)
         xold = start
         xnew = xold - numpy.linalg.solve(self.hessian(xold),self.gradient(xold))
         for it in xrange(maxit):
-            if numpy.linalg.norm(xold - xnew)<tolerange:
+            if numpy.linalg.norm(xold - xnew)<tolerance:
                 break
             (xold, xnew) = (xnew,xold - stepsize*numpy.linalg.solve(self.hessian(xold),self.gradient(xold)))
         return xnew
