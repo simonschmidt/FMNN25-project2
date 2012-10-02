@@ -43,7 +43,7 @@ class OptimizationProblem(object):
         return fh
 
     def _second_deriv(self,i,j,x,dx=0.00001):
-        """ Numerically calculated ∂f/∂xᵢx_j at point x
+        """ Numerically calculated ∂²f/∂xᵢ∂x_j at point x
         """
         dxi = scipy.zeros(self.shape)
         dxj = scipy.zeros(self.shape)
@@ -57,14 +57,14 @@ class OptimizationProblem(object):
             Optional arguments:
                 start: Starting point
         """
-        pass
+        raise NotImplementedError
 
     def argmin(self,start=None):
         """Finds the input that gives the minimum value of f
             Optional arguments:
                 start: Starting point
         """
-        pass
+        raise NotImplementedError
 
     def max(self,start=None):
         """Finds the maximum of f
