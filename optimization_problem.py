@@ -16,7 +16,7 @@ class OptimizationProblem(object):
             self.gradient = gradient
         else:
             def df(x):
-                return scipy.derivative(x)
+                return scipy.derivative(self.f,x)
             self.gradient = df
 
     def argmax():
