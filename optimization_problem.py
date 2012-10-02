@@ -6,7 +6,7 @@ import pylab
 
 class OptimizationProblem(object):
     """ ??? """
-    def __init__(self, f, shape, gradient = None):
+    def __init__(self, f, shape, gradient = None, hessian = None):
         """Solves an optimization problem, except that it doesn't
 
         Arguments:
@@ -25,9 +25,14 @@ class OptimizationProblem(object):
                 return [(f(x+df.h[i]*dx/2.) - f(x-df.h[i]*dx/2.))/dx for i in xrange(shape)]
             df.h = scipy.identity(self.shape)
             self.gradient = df
-        self.hessian = self._approx_hess()
+        if hessian:
+            self.hessian = hessian
+        else:
+            self.hessian = self._approx_hess()
+
 
     def _approx_hess(self):
+        """ Gives a function that approximates hessian matrix"""
         def fh(x):
             res = scipy.zeros((self.shape,self.shape))
             for row in xrange(self.shape):
