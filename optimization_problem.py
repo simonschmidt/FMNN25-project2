@@ -72,14 +72,14 @@ class OptimizationProblem(object):
                 start: Starting point
         """
 
-        return self.f(self.argmax(),start)
+        return self.f(self.argmax(start))
 
     def min(self,start=None):
         """Finds the minimum of f
             Optional arguments:
                 start: Starting point
         """
-        return self.f(self.argmin(), start)
+        return self.f(self.argmin(start))
 
 
 
