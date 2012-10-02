@@ -8,7 +8,7 @@ class OptimizationProblem(object):
 
         Arguments:
         f -- the function
-        gradient -- the gradient (default to ???)
+        gradient -- the gradient (default to numerical approximation)
         """
 
         self.f = f
@@ -21,9 +21,11 @@ class OptimizationProblem(object):
 
     def argmax():
         """Finds the input that gives the maximum value of f"""
+        pass
 
     def argmin():
         """Finds the input that gives the minimum value of f"""
+        pass
 
     def max():
         """Finds the maximum of f"""
