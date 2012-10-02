@@ -24,6 +24,22 @@ class OptimizationProblem(object):
             self.gradient = df
         self.shape = shape
 
+    def _approx_hess(self):
+        def fh(x):
+            res = scipy.zeros((self.shape,self.shape))
+            for row in xrange(self.shape):
+                for col in xrange(self.shape):
+                    res[row,col] = self._second_deriv(row,col,x)
+            return res
+        return fh
+
+    def _second_deriv(self,i,j,x,dx=0.00001):
+        dxi = scipy.zeros(self.shape)
+        dxj = scipy.zeros(self.shape)
+        dxi[i] = dx
+        dxj[j] = dx
+        return (self.f(x+dxi+dxj) - self.f(x+dxi-dxj) - self.f(x-dxi+dxj) + self.f(x-dxi-dxj))/(4.*dx*dx)
+
     def argmax(self,start=None):
         """Finds the input that gives the maximum value of f
             Optional arguments:
@@ -52,3 +68,22 @@ class OptimizationProblem(object):
                 start: Starting point
         """
         return self.f(self.argmin(), start)
+
+
+
+
+class Newton(OptimizationProblem):
+    # Inte klar
+    def argmin(self,start=None):
+        if start == None:
+            start = zeros(self.shape)
+        xold = start
+        hess = approx_fhess_p(xold,)
+        xnew = xold - numpy.linalg.solve()
+
+def test():
+    def f(x):
+        return x[0]*x[1]+x[1]+x[2]**2
+    OP = OptimizationProblem(f,3)
+    h= OP._approx_hess()
+    print h([1.,1.,1.])
