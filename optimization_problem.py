@@ -12,7 +12,12 @@ class OptimizationProblem(object):
         """
 
         self.f = f
-        self.gradient = gradient
+        if gradient:
+            self.gradient = gradient
+        else:
+            def df(x):
+                return scipy.derivative(x)
+            self.gradient = df
 
     def argmax():
         """Finds the input that gives the maximum value of f"""
