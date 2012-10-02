@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #coding: utf8
 import scipy
+import numpy
 import pylab
 
 class OptimizationProblem(object):
@@ -16,13 +17,15 @@ class OptimizationProblem(object):
         """
 
         self.f = f
+        self.shape=shape
         if gradient:
             self.gradient = gradient
         else:
-            def df(x):
-                return scipy.derivative(self.f,x)
+            def df(x,dx=0.0001):
+                return [(f(x+df.h[i]*dx/2.) - f(x-df.h[i]*dx/2.))/dx for i in xrange(shape)]
+            df.h = scipy.identity(self.shape)
             self.gradient = df
-        self.shape = shape
+        self.hessian = self._approx_hess()
 
     def _approx_hess(self):
         def fh(x):
@@ -39,6 +42,7 @@ class OptimizationProblem(object):
         dxi[i] = dx
         dxj[j] = dx
         return (self.f(x+dxi+dxj) - self.f(x+dxi-dxj) - self.f(x-dxi+dxj) + self.f(x-dxi-dxj))/(4.*dx*dx)
+
 
     def argmax(self,start=None):
         """Finds the input that gives the maximum value of f
@@ -73,17 +77,24 @@ class OptimizationProblem(object):
 
 
 class Newton(OptimizationProblem):
-    # Inte klar
-    def argmin(self,start=None):
+    # typ klar
+    def argmin(self,start=None,tolerange=0.001,maxit=1000,stepsize=0.5):
         if start == None:
-            start = zeros(self.shape)
+            start = scipy.zeros(self.shape)
         xold = start
-        hess = approx_fhess_p(xold,)
-        xnew = xold - numpy.linalg.solve()
+        xnew = xold - numpy.linalg.solve(self.hessian(xold),self.gradient(xold))
+        for it in xrange(maxit):
+            if numpy.linalg.norm(xold - xnew)<tolerange:
+                break
+            (xold, xnew) = (xnew,xold - stepsize*numpy.linalg.solve(self.hessian(xold),self.gradient(xold)))
+        return xnew
+
 
 def test():
     def f(x):
-        return x[0]*x[1]+x[1]+x[2]**2
+        return x[0]**2+x[1]**2+x[2]**2
     OP = OptimizationProblem(f,3)
     h= OP._approx_hess()
     print h([1.,1.,1.])
+    newt = Newton(f,3)
+    print newt.argmin(start=[1.0,2.0,1.5])
