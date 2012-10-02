@@ -14,6 +14,7 @@ class OptimizationProblem(object):
         shape -- Dimension of input argument to function
                  (if f: ℝⁿ->ℝ then shape=n)
         gradient -- the gradient (default to numerical approximation)
+        hessian  -- function returning hessian matrix (default to numerical approximation)
         """
 
         self.f = f
@@ -100,8 +101,6 @@ class Newton(OptimizationProblem):
 def test():
     def f(x):
         return x[0]**2+x[1]**2+x[2]**2
-    OP = OptimizationProblem(f,3)
-    h= OP._approx_hess()
-    print h([1.,1.,1.])
     newt = Newton(f,3)
+    print newt.hessian([1.,1.,1.])
     print newt.argmin(start=[1.0,2.0,1.5])
