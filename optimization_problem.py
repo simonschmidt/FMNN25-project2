@@ -19,20 +19,20 @@ class OptimizationProblem(object):
                 return scipy.derivative(self.f,x)
             self.gradient = df
 
-    def argmax():
+    def argmax(self,start=None,range=None):
         """Finds the input that gives the maximum value of f"""
         pass
 
-    def argmin():
+    def argmin(self,start=None,range=None):
         """Finds the input that gives the minimum value of f"""
         pass
 
-    def max():
+    def max(self,start=None,range=None):
         """Finds the maximum of f"""
 
         return self.f(self.argmax())
 
-    def min():
+    def min(self,start=None,range=None):
         """Finds the minimum of f"""
 
         return self.f(self.argmin())
