@@ -10,9 +10,9 @@ class OptimizationProblem(object):
 
         Arguments:
         f -- the function
-        gradient -- the gradient (default to numerical approximation)
         shape -- Dimension of input argument to function
                  (if f: ℝⁿ->ℝ then shape=n)
+        gradient -- the gradient (default to numerical approximation)
         """
 
         self.f = f
@@ -28,7 +28,6 @@ class OptimizationProblem(object):
         """Finds the input that gives the maximum value of f
             Optional arguments:
                 start: Starting point
-                range: Search range
         """
         pass
 
@@ -36,7 +35,6 @@ class OptimizationProblem(object):
         """Finds the input that gives the minimum value of f
             Optional arguments:
                 start: Starting point
-                range: Search range
         """
         pass
 
@@ -44,7 +42,6 @@ class OptimizationProblem(object):
         """Finds the maximum of f
             Optional arguments:
                 start: Starting point
-                range: Search range
         """
 
         return self.f(self.argmax(),start)
@@ -53,6 +50,5 @@ class OptimizationProblem(object):
         """Finds the minimum of f
             Optional arguments:
                 start: Starting point
-                range: Search range
         """
         return self.f(self.argmin(), start)
