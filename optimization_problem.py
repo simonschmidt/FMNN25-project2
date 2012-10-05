@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #coding: utf8
 import scipy
+import scipy.linalg
 import numpy
 import pylab
 
@@ -37,8 +38,10 @@ class OptimizationProblem(object):
         def fh(x):
             res = scipy.zeros((self.shape,self.shape))
             for row in xrange(self.shape):
-                for col in xrange(self.shape):
+                for col in xrange(row,self.shape):
                     res[row,col] = self._second_deriv(row,col,x)
+                    if row != col:
+                        res[col,row] = res[row,col]
             return res
         return fh
 
@@ -94,7 +97,8 @@ class Newton(OptimizationProblem):
         for it in xrange(maxit):
             if numpy.linalg.norm(xold - xnew)<tolerance:
                 break
-            (xold, xnew) = (xnew,xold - stepsize*numpy.linalg.solve(self.hessian(xold),self.gradient(xold)))
+            chol = scipy.linalg.cho_factor(self.hessian(xold))
+            (xold, xnew) = (xnew,xold - stepsize*scipy.linalg.cho_solve(chol,self.gradient(xold)))
         return xnew
 
 
