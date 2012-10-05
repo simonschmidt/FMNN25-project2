@@ -109,8 +109,6 @@ class Newton(OptimizationProblem):
 
 class ExactLineNewton(OptimizationProblem):
     lineNewton=None
-    def __init__(self,*args,**kwargs):
-        super(ExactLineNewton,self).__init__(*args,**kwargs)
 
     def linesearch(self,x):
         """Do one linesearch step, uses newton method to find correct region
