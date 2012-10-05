@@ -3,8 +3,25 @@ FMNN25-project2
 
 http://www.maths.lth.se/na/courses/FMNN25/media/material/project02_.pdf
 
+# Todo
+* ~~Optimization problem class~~
+* ~~Classical Newton~~
+* ~~Newton + Exact line search~~
+* Inexact line search
+* Task 7
+* Provide newton's method with inexact line search option
+* ~~Good Broyden~~
+* ~~Bad Broyden~~
+* ~~DFP~~
+* BFGS
+* chebquad
+* compare fmin_bfgs
+* study goodness of BFGS hessian approximation
 
+
+Test on Rosenbrock Function
 # Exact line search using newton method
+--
 On the function
 ```python
 def f(x):
