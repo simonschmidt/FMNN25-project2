@@ -4,6 +4,8 @@ import scipy
 import scipy.linalg
 import numpy
 import pylab
+import matplotlib.pyplot as pyplot
+import matplotlib.mlab
 
 class OptimizationProblem(object):
     """ ??? """
@@ -25,7 +27,7 @@ class OptimizationProblem(object):
             self.gradient = gradient
         else:
             def df(x):
-                return [(f(x+df.h[i]*self.dx/2.) - f(x-df.h[i]*self.dx/2.))/self.dx for i in xrange(shape)]
+                return numpy.array([(f(x+df.h[i]*self.dx/2.) - f(x-df.h[i]*self.dx/2.))/self.dx for i in xrange(shape)])
             df.h = scipy.identity(self.shape)
             self.gradient = df
         if hessian:
@@ -107,8 +109,49 @@ class Newton(OptimizationProblem):
 
 class ExactLineNewton(OptimizationProblem):
 
-    def linesearch(self):
-        pass
+    def linesearch(self,x):
+        direction = -self.gradient(x)
+        # f restricted to the line
+        fline = lambda a: self.f(x+a*direction)
+        abest = Newton(fline,1).argmin(start=0.5)
+        return (abest,x+abest*direction)
+
+    @classmethod
+    def test(cls):
+        def f(x):
+            return x[0]**2 +3*x[1]**2
+        startx=[2.1,1.3]
+        eln = cls(f,2)
+        (abest,xnext) = eln.linesearch(startx)
+        delta=0.025
+        xx=numpy.arange(-3.,3.,delta)
+        yy=numpy.arange(-3.,3.,delta)
+        X,Y = numpy.meshgrid(xx,yy)
+        z = scipy.zeros((len(yy),len(xx)))
+
+        for i,y in enumerate(yy):
+            for j,x in enumerate(xx):
+                z[i,j]= f([x,y])
+        pyplot.subplot(211)
+        pyplot.hold(True)
+        pyplot.contour(X,Y,z)
+        pyplot.hold(True)
+        # Starting point
+        pyplot.plot(startx[0],startx[1],'o',label='$x_0$')
+        # Search line
+        pyplot.plot([startx[0],startx[0]-0.5*eln.gradient(startx)[0]],
+                    [startx[1],startx[1]-0.5*eln.gradient(startx)[1]],'-',label="search line")
+        # Best point
+        pyplot.plot(xnext[0],xnext[1],'o',label="$a^*")
+
+        pyplot.subplot(212)
+        pyplot.hold(True)
+        direction = -1*eln.gradient(startx)
+        pyplot.plot(scipy.linspace(0,2*abest),[f(startx + ai*direction) for ai in scipy.linspace(0,2*abest)])
+        pyplot.plot(abest,f(startx + abest*direction),'o')
+        pyplot.show()
+        print (abest,xnext)
+
 
 def test():
     def f(x):
