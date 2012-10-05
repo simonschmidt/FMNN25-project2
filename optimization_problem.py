@@ -122,7 +122,7 @@ class Newton(OptimizationProblem):
             delta = scipy.linalg.cho_solve(chol,self.gradient(xold))
             if self.f(xold-stepsize*delta)>self.f(xold):
                 stepsize=stepsize*0.8
-            (xold, xnew) = (xnew,xold - stepsize*scipy.linalg.cho_solve(chol,self.gradient(xold)))
+            (xold, xnew) = (xnew,xold - stepsize*delta)
         return xnew
 
 class ExactLineNewton(OptimizationProblem):
@@ -136,7 +136,7 @@ class ExactLineNewton(OptimizationProblem):
                 (abest, xnext)
         """
         # Search direction
-        direction = -self.gradient(x)
+        direction = numpy.dot(self.hessian(x),self.gradient(x))
 
         # f restricted to the line
         fline = lambda a: self.f(x+a*direction)
@@ -185,9 +185,9 @@ class ExactLineNewton(OptimizationProblem):
         # Starting point
         pyplot.plot(startx[0],startx[1],'o',label='$x_0$')
         # Search line
-        direction=self.gradient(startx)
-        pyplot.plot([startx[0]+0.5*abest*direction[0],startx[0]-1.5*abest*direction[0]],
-                    [startx[1]+0.5*abest*direction[1],startx[1]-1.5*abest*direction[1]],'-',label="search line")
+        direction=numpy.dot(self.hessian(startx),self.gradient(startx))
+        pyplot.plot([startx[0]-0.5*abest*direction[0],startx[0]+1.5*abest*direction[0]],
+                    [startx[1]-0.5*abest*direction[1],startx[1]+1.5*abest*direction[1]],'-',label="search line")
         # Best point
         pyplot.plot(xnext[0],xnext[1],'o',label="$x_0 + a^* * direction$")
         pyplot.legend(loc=0)
@@ -195,7 +195,6 @@ class ExactLineNewton(OptimizationProblem):
 
         pyplot.subplot(212)
         pyplot.hold(True)
-        direction = -1*self.gradient(startx)
         xx=scipy.linspace(0,2*abest)
         pyplot.plot(xx,[self.f(startx + ai*direction) for ai in xx],label="Value on search line")
         pyplot.plot(abest,self.f(startx + abest*direction),'o')
@@ -215,6 +214,7 @@ class ExactLineNewton(OptimizationProblem):
 
         def f(x):
             return scipy.sqrt((x[0]-1.1)**2 + (x[1]-3.2)**2) + x[0]**2
+            #return (x[0]-2.3)**2 + (x[1]+0.2)**2
         eln = ExactLineNewton(f,2)
         eln.plot()
         print "Argmin: %s" % eln.argmin()
