@@ -95,7 +95,7 @@ class OptimizationProblem(object):
 
 class Newton(OptimizationProblem):
     # typ klar
-    def argmin(self,start=None,tolerance=0.001,maxit=1000,stepsize=0.5):
+    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=0.2):
         if start == None:
             start = scipy.zeros(self.shape)
         xold = start
@@ -112,6 +112,10 @@ class ExactLineNewton(OptimizationProblem):
 
     def linesearch(self,x):
         """Do one linesearch step, uses newton method to find correct region
+            Arguments: 
+                x: Starting point
+            Returns:
+                (abest, xnext)
         """
         # Search direction
         direction = -self.gradient(x)
@@ -127,6 +131,18 @@ class ExactLineNewton(OptimizationProblem):
 
         abest = self.lineNewton.argmin(start=0.5)
         return (abest,x+abest*direction)
+
+    def argmin(self,start=None,tolerance=0.001,maxit=1000):
+        print start
+        if not start:
+            start = scipy.zeros(self.shape)
+        xold = start
+        xnew = self.linesearch(xold)[1]
+        for it in xrange(maxit):
+            if numpy.linalg.norm(xold-xnew)<tolerance:
+                break
+            (xold,xnew) = (xnew,self.linesearch(xnew)[1])
+        return xnew
 
     def plot(self,startx=None,region=(-4.,4.)):
         if self.shape != 2:
@@ -171,10 +187,20 @@ class ExactLineNewton(OptimizationProblem):
 
     @classmethod
     def test(cls):
+        # def rosenbrock(x):
+        #     return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+        # elnrosen = ExactLineNewton(rosenbrock,2)
+        # try:
+        #     elnrosen.argmin()
+        #     assert False, "Was able to argmin rosenbrock, should have caused problems with positive definiteness"
+        # except numpy.linalg.LinAlgError:
+        #     pass
+
         def f(x):
-            return (x[0]+1.3)**2+(x[1]-0.3)**2
+            return scipy.sqrt((x[0]-1.1)**2 + (x[1]-3.2)**2) + x[0]**2
         eln = ExactLineNewton(f,2)
         eln.plot()
+        print "Argmin: %s" % eln.argmin([0.1,0.3])
 
 
 def test():
