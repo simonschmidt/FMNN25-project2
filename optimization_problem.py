@@ -116,22 +116,21 @@ class ExactLineNewton(OptimizationProblem):
         abest = Newton(fline,1).argmin(start=0.5)
         return (abest,x+abest*direction)
 
-    @classmethod
-    def test(cls):
-        def f(x):
-            return x[0]**2 +3*x[1]**2
-        startx=[2.1,1.3]
-        eln = cls(f,2)
-        (abest,xnext) = eln.linesearch(startx)
+    def plot(self,startx=None,region=(-4.,4.)):
+        if self.shape != 2:
+            raise NotImplementedError(u'only capable of plotting functions  ℝ² -> ℝ')
+        if not startx:
+            startx = scipy.zeros((self.shape,))
+        (abest,xnext) = self.linesearch(startx)
         delta=0.025
-        xx=numpy.arange(-3.,3.,delta)
-        yy=numpy.arange(-3.,3.,delta)
+        xx=numpy.arange(region[0],region[1],delta)
+        yy=numpy.arange(region[0],region[1],delta)
         X,Y = numpy.meshgrid(xx,yy)
         z = scipy.zeros((len(yy),len(xx)))
 
         for i,y in enumerate(yy):
             for j,x in enumerate(xx):
-                z[i,j]= f([x,y])
+                z[i,j]= self.f([x,y])
         pyplot.subplot(211)
         pyplot.hold(True)
         pyplot.contour(X,Y,z)
@@ -139,8 +138,8 @@ class ExactLineNewton(OptimizationProblem):
         # Starting point
         pyplot.plot(startx[0],startx[1],'o',label='$x_0$')
         # Search line
-        pyplot.plot([startx[0],startx[0]-0.5*eln.gradient(startx)[0]],
-                    [startx[1],startx[1]-0.5*eln.gradient(startx)[1]],'-',label="search line")
+        pyplot.plot([startx[0],startx[0]-0.5*self.gradient(startx)[0]],
+                    [startx[1],startx[1]-0.5*self.gradient(startx)[1]],'-',label="search line")
         # Best point
         pyplot.plot(xnext[0],xnext[1],'o',label="$x_0 + a^* * direction$")
         pyplot.legend(loc=0)
@@ -148,12 +147,19 @@ class ExactLineNewton(OptimizationProblem):
 
         pyplot.subplot(212)
         pyplot.hold(True)
-        direction = -1*eln.gradient(startx)
-        pyplot.plot(scipy.linspace(0,2*abest),[f(startx + ai*direction) for ai in scipy.linspace(0,2*abest)],label="Value on search line")
-        pyplot.plot(abest,f(startx + abest*direction),'o')
+        direction = -1*self.gradient(startx)
+        pyplot.plot(scipy.linspace(0,2*abest),[self.f(startx + ai*direction) for ai in scipy.linspace(0,2*abest)],label="Value on search line")
+        pyplot.plot(abest,self.f(startx + abest*direction),'o')
         pyplot.legend()
         pyplot.show()
         print (abest,xnext)
+
+    @classmethod
+    def test(cls):
+        def f(x):
+            return (x[0]+1.3)**2+(x[1]-0.3)**2
+        eln = ExactLineNewton(f,2)
+        eln.plot()
 
 
 def test():
