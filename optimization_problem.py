@@ -27,7 +27,7 @@ class OptimizationProblem(object):
             self.gradient = gradient
         else:
             def df(x):
-                return numpy.array([(f(x+df.h[i]*self.dx/2.) - f(x-df.h[i]*self.dx/2.))/self.dx for i in xrange(shape)])
+                return numpy.array([(self.f(x+df.h[i]*self.dx/2.) - self.f(x-df.h[i]*self.dx/2.))/self.dx for i in xrange(shape)])
             df.h = scipy.identity(self.shape)
             self.gradient = df
         if hessian:
@@ -108,12 +108,26 @@ class Newton(OptimizationProblem):
         return xnew
 
 class ExactLineNewton(OptimizationProblem):
+    lineNewton=None
+    def __init__(self,*args,**kwargs):
+        super(ExactLineNewton,self).__init__(*args,**kwargs)
 
     def linesearch(self,x):
+        """Do one linesearch step, uses newton method to find correct region
+        """
+        # Search direction
         direction = -self.gradient(x)
+
         # f restricted to the line
         fline = lambda a: self.f(x+a*direction)
-        abest = Newton(fline,1).argmin(start=0.5)
+
+        # Reuse newton class, 
+        if self.lineNewton:
+            self.lineNewton.f = fline
+        else:
+            self.lineNewton = Newton(fline, 1)
+
+        abest = self.lineNewton.argmin(start=0.5)
         return (abest,x+abest*direction)
 
     def plot(self,startx=None,region=(-4.,4.)):
@@ -122,6 +136,8 @@ class ExactLineNewton(OptimizationProblem):
         if not startx:
             startx = scipy.zeros((self.shape,))
         (abest,xnext) = self.linesearch(startx)
+
+        # Set up data for contour plot
         delta=0.025
         xx=numpy.arange(region[0],region[1],delta)
         yy=numpy.arange(region[0],region[1],delta)
@@ -134,7 +150,7 @@ class ExactLineNewton(OptimizationProblem):
         pyplot.subplot(211)
         pyplot.hold(True)
         pyplot.contour(X,Y,z)
-        pyplot.hold(True)
+
         # Starting point
         pyplot.plot(startx[0],startx[1],'o',label='$x_0$')
         # Search line
