@@ -173,6 +173,33 @@ class Newton(OptimizationProblem):
             (xold, xnew) = (xnew,xold - stepsize*delta)
         return xnew
 
+class BroydenNewton(Newton):
+    def argmin(self, start=None, tolerance=0.0001, maxit=1000, stepsize=1.0):
+        x_old = start if start != None else scipy.zeros(self.shape)
+
+        inverse = scipy.linalg.inv(self._approx_hess()(x_old))
+        
+        x_new = x_old - scipy.dot(inverse, x_old)
+
+        for it in xrange(1, maxit):
+            g_x = x_old - x_new
+
+            if numpy.linalg.norm(g_x) < tolerance: break
+
+            g_f = self.gradient(x_new)
+
+            lhs_num = g_x - scipy.dot(inverse, g_f)
+            lhs_den = scipy.dot(scipy.dot(g_x.T, inverse), g_f)
+
+            lhs = lhs_num / lhs_den
+            rhs = scipy.dot(g_x.T, inverse)
+
+            inverse = inverse + scipy.dot(lhs, rhs)
+
+            (x_old, x_new) = (x_new, x_new - stepsize * scipy.dot(inverse, x_new))
+
+        return x_new
+
 class ExactLineNewton(OptimizationProblem):
     lineNewton=None
 
