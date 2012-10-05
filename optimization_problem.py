@@ -142,13 +142,16 @@ class ExactLineNewton(OptimizationProblem):
         pyplot.plot([startx[0],startx[0]-0.5*eln.gradient(startx)[0]],
                     [startx[1],startx[1]-0.5*eln.gradient(startx)[1]],'-',label="search line")
         # Best point
-        pyplot.plot(xnext[0],xnext[1],'o',label="$a^*")
+        pyplot.plot(xnext[0],xnext[1],'o',label="$f(x_0 + a^* * direction)$")
+        pyplot.legend(loc=0)
+
 
         pyplot.subplot(212)
         pyplot.hold(True)
         direction = -1*eln.gradient(startx)
-        pyplot.plot(scipy.linspace(0,2*abest),[f(startx + ai*direction) for ai in scipy.linspace(0,2*abest)])
+        pyplot.plot(scipy.linspace(0,2*abest),[f(startx + ai*direction) for ai in scipy.linspace(0,2*abest)],label="Value on search line")
         pyplot.plot(abest,f(startx + abest*direction),'o')
+        pyplot.legend()
         pyplot.show()
         print (abest,xnext)
 
