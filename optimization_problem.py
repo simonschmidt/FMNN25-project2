@@ -7,6 +7,7 @@ import pylab
 
 class OptimizationProblem(object):
     """ ??? """
+    dx = 0.00001
     def __init__(self, f, shape, gradient = None, hessian = None):
         """Solves an optimization problem, except that it doesn't
 
@@ -23,8 +24,8 @@ class OptimizationProblem(object):
         if gradient:
             self.gradient = gradient
         else:
-            def df(x,dx=0.0001):
-                return [(f(x+df.h[i]*dx/2.) - f(x-df.h[i]*dx/2.))/dx for i in xrange(shape)]
+            def df(x):
+                return [(f(x+df.h[i]*self.dx/2.) - f(x-df.h[i]*self.dx/2.))/self.dx for i in xrange(shape)]
             df.h = scipy.identity(self.shape)
             self.gradient = df
         if hessian:
@@ -42,17 +43,20 @@ class OptimizationProblem(object):
                     res[row,col] = self._second_deriv(row,col,x)
                     if row != col:
                         res[col,row] = res[row,col]
+            # TODO pos-definite check
+            # worth it to do it here? cho_factor will test for
+            # pos-def implicitly
             return res
         return fh
 
-    def _second_deriv(self,i,j,x,dx=0.00001):
+    def _second_deriv(self,i,j,x):
         """ Numerically calculated ∂²f/∂xᵢ∂x_j at point x
         """
         dxi = scipy.zeros(self.shape)
         dxj = scipy.zeros(self.shape)
-        dxi[i] = dx
-        dxj[j] = dx
-        return (self.f(x+dxi+dxj) - self.f(x+dxi-dxj) - self.f(x-dxi+dxj) + self.f(x-dxi-dxj))/(4.*dx*dx)
+        dxi[i] = self.dx
+        dxj[j] = self.dx
+        return (self.f(x+dxi+dxj) - self.f(x+dxi-dxj) - self.f(x-dxi+dxj) + self.f(x-dxi-dxj))/(4.*self.dx*self.dx)
 
 
     def argmax(self,start=None):
@@ -101,6 +105,10 @@ class Newton(OptimizationProblem):
             (xold, xnew) = (xnew,xold - stepsize*scipy.linalg.cho_solve(chol,self.gradient(xold)))
         return xnew
 
+class ExactLineNewton(OptimizationProblem):
+
+    def linesearch(self):
+        pass
 
 def test():
     def f(x):
