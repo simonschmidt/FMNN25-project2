@@ -90,22 +90,25 @@ class OptimizationProblem(object):
         """
         return self.f(self.argmin(start))
 
-    def plot(self,startx=None,region=(-4.,4.)):
+    def plot(self,start=None,region=(-5.,5.)):
         if self.shape != 2:
             raise NotImplementedError(u'only capable of plotting functions  ℝ² -> ℝ')
-        if not startx:
-            startx = scipy.zeros((self.shape,))
+        if not start:
+            start = scipy.zeros((self.shape,))
 
         pyplot.subplot(211)
+        pyplot.subplots_adjust(hspace=1.)
         pyplot.title('Iteration progress')
         pyplot.xlabel('iteration')
         vals = scipy.zeros((100,2))
-        vals[0] = startx
+        vals[0] = start
         try:
             for i in xrange(1,100):
-                vals[i] = self.argmin(start=vals[i-1],maxit=1)
-        except numpy.linalg.LinAlgError:
-            pass
+                vals[i] = self.argmin(start=vals[i-1],maxit=i)
+                if numpy.linalg.norm(vals[i]-vals[i-1])<0.000001:
+                    break
+        except numpy.linalg.LinAlgError as e:
+            print e
         vals = vals[:i]
         yvals = [self.f(v) for v in vals]
         pyplot.plot(range(len(yvals)),yvals, label='$f(x_i)$')
@@ -137,6 +140,27 @@ class OptimizationProblem(object):
         pyplot.legend(loc=0)
 
         pyplot.show()
+
+    @classmethod
+    def test(cls,start=None):
+        # def rosenbrock(x):
+        #     return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+        # elnrosen = ExactLineNewton(rosenbrock,2)
+        # try:
+        #     elnrosen.argmin()
+        #     assert False, "Was able to argmin rosenbrock, should have caused problems with positive definiteness"
+        # except numpy.linalg.LinAlgError:
+        #     pass
+
+        def f(x):
+            #return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
+            #return (x[0]-2.3)**2 + (x[1]+0.2)**2
+            #return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+            return 0.5 * x[0]**2 + 2.5 * x[1]**2
+        inst = cls(f,2)
+        inst.plot(start=start)
+        print "Argmin: %s" % inst.argmin(start=start)
+        return inst
 
 
 
@@ -264,12 +288,12 @@ class ExactLineNewton(OptimizationProblem):
             (xold,xnew) = (xnew,self.linesearch(xnew)[1])
         return xnew
 
-    def plot(self,startx=None,region=(-4.,4.)):
+    def plot(self,start=None,region=(-4.,4.)):
         if self.shape != 2:
             raise NotImplementedError(u'only capable of plotting functions  ℝ² -> ℝ')
-        if not startx:
-            startx = scipy.zeros((self.shape,))
-        (abest,xnext) = self.linesearch(startx)
+        if not start:
+            start = scipy.zeros((self.shape,))
+        (abest,xnext) = self.linesearch(start)
 
         # Set up data for contour plot
         delta=0.05
@@ -289,11 +313,11 @@ class ExactLineNewton(OptimizationProblem):
         pyplot.ylabel('$x_2$')
 
         # Starting point
-        pyplot.plot(startx[0],startx[1],'o',label='$x_0$')
+        pyplot.plot(start[0],start[1],'o',label='$x_0$')
         # Search line
-        direction=numpy.dot(self.hessian(startx),self.gradient(startx))
-        pyplot.plot([startx[0]-0.5*abest*direction[0],startx[0]+1.5*abest*direction[0]],
-                    [startx[1]-0.5*abest*direction[1],startx[1]+1.5*abest*direction[1]],'-',label="search line")
+        direction=numpy.dot(self.hessian(start),self.gradient(start))
+        pyplot.plot([start[0]-0.5*abest*direction[0],start[0]+1.5*abest*direction[0]],
+                    [start[1]-0.5*abest*direction[1],start[1]+1.5*abest*direction[1]],'-',label="search line")
         # Best point
         pyplot.plot(xnext[0],xnext[1],'o',label="$x_0 + a^* * direction$")
         pyplot.legend(loc=0)
@@ -304,8 +328,8 @@ class ExactLineNewton(OptimizationProblem):
         pyplot.hold(True)
         pyplot.xlabel('a')
         xx=scipy.linspace(0,2*abest)
-        pyplot.plot(xx,[self.f(startx + ai*direction) for ai in xx],label="Value on search line")
-        pyplot.plot(abest,self.f(startx + abest*direction),'o')
+        pyplot.plot(xx,[self.f(start + ai*direction) for ai in xx],label="Value on search line")
+        pyplot.plot(abest,self.f(start + abest*direction),'o')
         pyplot.legend()
 
 
@@ -313,24 +337,25 @@ class ExactLineNewton(OptimizationProblem):
         super(ExactLineNewton,self).plot()
         
 
-    @classmethod
-    def test(cls):
-        # def rosenbrock(x):
-        #     return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
-        # elnrosen = ExactLineNewton(rosenbrock,2)
-        # try:
-        #     elnrosen.argmin()
-        #     assert False, "Was able to argmin rosenbrock, should have caused problems with positive definiteness"
-        # except numpy.linalg.LinAlgError:
-        #     pass
 
-        def f(x):
-            return scipy.sqrt((x[0]-1.1)**2 + (x[1]-3.2)**2) + x[0]**2
-            #return (x[0]-2.3)**2 + (x[1]+0.2)**2
-        eln = ExactLineNewton(f,2)
-        eln.plot()
-        print "Argmin: %s" % eln.argmin()
 
+class DFP(Newton):
+    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=1.0):
+        xold = start if start != None else scipy.zeros(self.shape)
+
+        #B = scipy.identity(self.shape)
+        B = self.hessian(xold)
+        for it in xrange(maxit):
+            if (it != 0 and numpy.linalg.norm(s)<tolerance): break
+            ngrad = -1*self.gradient(xold)
+            s = numpy.linalg.solve(B,ngrad)
+            xnew = xold + s
+            y = self.gradient(xnew) + ngrad
+            stb = numpy.dot(s,B)
+            bs = numpy.dot(B,s)
+            B = B + numpy.outer(y,y)/numpy.dot(y,s) - numpy.outer(bs,stb)/numpy.dot(stb,s)
+            xold = xnew
+        return xnew
 
 def test():
     def f(x):
@@ -338,3 +363,4 @@ def test():
     newt = Newton(f,3)
     print newt.hessian([1.,1.,1.])
     print newt.argmin(start=[1.0,2.0,1.5])
+
