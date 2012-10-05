@@ -95,15 +95,31 @@ class OptimizationProblem(object):
 
 class Newton(OptimizationProblem):
     # typ klar
-    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=0.2):
+    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=0.1):
         if start == None:
             start = scipy.zeros(self.shape)
         xold = start
         xnew = xold - numpy.linalg.solve(self.hessian(xold),self.gradient(xold))
         for it in xrange(maxit):
             if numpy.linalg.norm(xold - xnew)<tolerance:
+                print "close enough"
                 break
             chol = scipy.linalg.cho_factor(self.hessian(xold))
+            (xold, xnew) = (xnew,xold - stepsize*scipy.linalg.cho_solve(chol,self.gradient(xold)))
+        return xnew
+    def argminAdaptive(self,start=None,tolerance=0.0001,maxit=1000,stepsize=0.1):
+        if start == None:
+            start = scipy.zeros(self.shape)
+        xold = start
+        xnew = xold - numpy.linalg.solve(self.hessian(xold),self.gradient(xold))
+        for it in xrange(maxit):
+            if numpy.linalg.norm(xold - xnew)<tolerance:
+                print "close enough"
+                break
+            chol = scipy.linalg.cho_factor(self.hessian(xold))
+            delta = scipy.linalg.cho_solve(chol,self.gradient(xold))
+            if self.f(xold-stepsize*delta)>self.f(xold):
+                stepsize=stepsize*0.8
             (xold, xnew) = (xnew,xold - stepsize*scipy.linalg.cho_solve(chol,self.gradient(xold)))
         return xnew
 
@@ -129,7 +145,7 @@ class ExactLineNewton(OptimizationProblem):
         else:
             self.lineNewton = Newton(fline, 1)
 
-        abest = self.lineNewton.argmin(start=0.5)
+        abest = self.lineNewton.argminAdaptive(start=0.5)
         return (abest,x+abest*direction)
 
     def argmin(self,start=None,tolerance=0.001,maxit=1000):

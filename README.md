@@ -14,4 +14,6 @@ Doing a line search starting at point (0,0) by using newton method to find
 best position on the line segment in the direction of the gradient the newton
 method becomes unstable and will not converge
 see Non-converging-newton-line-function.png  and Non-converging-newton.png
+Was fixed by using argminAdaptive that checks if new point is worse than old one
+and in that case decrease stepsize
 
