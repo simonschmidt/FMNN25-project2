@@ -102,11 +102,12 @@ class Newton(OptimizationProblem):
         xnew = xold - numpy.linalg.solve(self.hessian(xold),self.gradient(xold))
         for it in xrange(maxit):
             if numpy.linalg.norm(xold - xnew)<tolerance:
-                print "close enough"
                 break
             chol = scipy.linalg.cho_factor(self.hessian(xold))
             (xold, xnew) = (xnew,xold - stepsize*scipy.linalg.cho_solve(chol,self.gradient(xold)))
         return xnew
+
+
     def argminAdaptive(self,start=None,tolerance=0.0001,maxit=1000,stepsize=0.1):
         if start == None:
             start = scipy.zeros(self.shape)
@@ -114,7 +115,6 @@ class Newton(OptimizationProblem):
         xnew = xold - numpy.linalg.solve(self.hessian(xold),self.gradient(xold))
         for it in xrange(maxit):
             if numpy.linalg.norm(xold - xnew)<tolerance:
-                print "close enough"
                 break
             chol = scipy.linalg.cho_factor(self.hessian(xold))
             delta = scipy.linalg.cho_solve(chol,self.gradient(xold))
@@ -145,11 +145,10 @@ class ExactLineNewton(OptimizationProblem):
         else:
             self.lineNewton = Newton(fline, 1)
 
-        abest = self.lineNewton.argminAdaptive(start=0.5)
+        abest = self.lineNewton.argminAdaptive(start=0.1)
         return (abest,x+abest*direction)
 
     def argmin(self,start=None,tolerance=0.001,maxit=1000):
-        print start
         if not start:
             start = scipy.zeros(self.shape)
         xold = start
@@ -184,8 +183,9 @@ class ExactLineNewton(OptimizationProblem):
         # Starting point
         pyplot.plot(startx[0],startx[1],'o',label='$x_0$')
         # Search line
-        pyplot.plot([startx[0],startx[0]-0.5*self.gradient(startx)[0]],
-                    [startx[1],startx[1]-0.5*self.gradient(startx)[1]],'-',label="search line")
+        direction=self.gradient(startx)
+        pyplot.plot([startx[0]+0.5*abest*direction[0],startx[0]-1.5*abest*direction[0]],
+                    [startx[1]+0.5*abest*direction[1],startx[1]-1.5*abest*direction[1]],'-',label="search line")
         # Best point
         pyplot.plot(xnext[0],xnext[1],'o',label="$x_0 + a^* * direction$")
         pyplot.legend(loc=0)
@@ -199,7 +199,6 @@ class ExactLineNewton(OptimizationProblem):
         pyplot.plot(abest,self.f(startx + abest*direction),'o')
         pyplot.legend()
         pyplot.show()
-        print (abest,xnext)
 
     @classmethod
     def test(cls):
@@ -216,7 +215,7 @@ class ExactLineNewton(OptimizationProblem):
             return scipy.sqrt((x[0]-1.1)**2 + (x[1]-3.2)**2) + x[0]**2
         eln = ExactLineNewton(f,2)
         eln.plot()
-        print "Argmin: %s" % eln.argmin([0.1,0.3])
+        print "Argmin: %s" % eln.argmin()
 
 
 def test():
