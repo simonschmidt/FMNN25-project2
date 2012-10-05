@@ -109,6 +109,8 @@ class Newton(OptimizationProblem):
 
 
     def argminAdaptive(self,start=None,tolerance=0.0001,maxit=1000,stepsize=0.1):
+        """ Newton iteration adapting stepsize when overstepping local minima
+        """
         if start == None:
             start = scipy.zeros(self.shape)
         xold = start
