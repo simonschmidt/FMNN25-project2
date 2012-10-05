@@ -155,8 +155,8 @@ class OptimizationProblem(object):
         def f(x):
             #return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
             #return (x[0]-2.3)**2 + (x[1]+0.2)**2
-            #return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
-            return 0.5 * x[0]**2 + 2.5 * x[1]**2
+            return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+            #return 0.5 * x[0]**2 + 2.5 * x[1]**2
         inst = cls(f,2)
         inst.plot(start=start)
         print "Argmin: %s" % inst.argmin(start=start)
@@ -354,6 +354,29 @@ class DFP(Newton):
             stb = numpy.dot(s,B)
             bs = numpy.dot(B,s)
             B = B + numpy.outer(y,y)/numpy.dot(y,s) - numpy.outer(bs,stb)/numpy.dot(stb,s)
+            xold = xnew
+        return xnew
+
+class BFGS(Newton):
+    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=1.0):
+        xold = start if start != None else scipy.zeros(self.shape)
+
+        #B = scipy.identity(self.shape)
+        B = self.hessian(xold)
+        for it in xrange(maxit):
+            if (it != 0 and numpy.linalg.norm(s)<tolerance): break
+            ngrad = -1*self.gradient(xold)
+            s = numpy.linalg.solve(B,ngrad)
+
+            xnew = xold + s
+            y = self.gradient(xnew) + ngrad
+
+            # Update hessian approximation
+            stb = numpy.dot(s,B)
+            bs = numpy.dot(B,s)
+            ys = numpy.dot(s,y)
+
+            B = B + (1+numpy.dot(stb,s)/ys)*numpy.outer(y,y)/ys - (numpy.dot(y,stb) + numpy.dot(bs,y))/ys
             xold = xnew
         return xnew
 
