@@ -90,12 +90,60 @@ class OptimizationProblem(object):
         """
         return self.f(self.argmin(start))
 
+    def plot(self,startx=None,region=(-4.,4.)):
+        if self.shape != 2:
+            raise NotImplementedError(u'only capable of plotting functions  ℝ² -> ℝ')
+        if not startx:
+            startx = scipy.zeros((self.shape,))
+
+        pyplot.subplot(211)
+        pyplot.title('Iteration progress')
+        pyplot.xlabel('iteration')
+        vals = scipy.zeros((100,2))
+        vals[0] = startx
+        try:
+            for i in xrange(1,100):
+                vals[i] = self.argmin(start=vals[i-1],maxit=1)
+        except numpy.linalg.LinAlgError:
+            pass
+        vals = vals[:i]
+        yvals = [self.f(v) for v in vals]
+        pyplot.plot(range(len(yvals)),yvals, label='$f(x_i)$')
+        pyplot.legend()
+
+        pyplot.subplot(212)
+        # Set up data for contour plot
+        #delta=0.05
+        #xx=numpy.arange(region[0],region[1],delta)
+        #yy=numpy.arange(region[0],region[1],delta)
+        xx = scipy.linspace(region[0],region[1],150)
+        yy = scipy.linspace(region[0],region[1],150)
+        X,Y = numpy.meshgrid(xx,yy)
+        z = scipy.zeros((len(yy),len(xx)))
+
+        for i,y in enumerate(yy):
+            for j,x in enumerate(xx):
+                z[i,j]= self.f([x,y])
+
+        pyplot.subplot(212)
+        pyplot.contour(X,Y,z)
+        pyplot.title('Contour lines with Search path')
+        pyplot.xlabel('$x_1$')
+        pyplot.ylabel('$x_2$')
+        pyplot.hold(True)
+        pyplot.plot(vals[:,0],vals[:,1],'-',label='Search path')
+        pyplot.xlabel('$x_1$')
+        pyplot.ylabel('$x_2$')
+        pyplot.legend(loc=0)
+
+        pyplot.show()
+
 
 
 
 class Newton(OptimizationProblem):
     # typ klar
-    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=0.1):
+    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=1.0):
         if start == None:
             start = scipy.zeros(self.shape)
         xold = start
@@ -108,7 +156,7 @@ class Newton(OptimizationProblem):
         return xnew
 
 
-    def argminAdaptive(self,start=None,tolerance=0.0001,maxit=1000,stepsize=0.1):
+    def argminAdaptive(self,start=None,tolerance=0.0001,maxit=1000,stepsize=1.0):
         """ Newton iteration adapting stepsize when overstepping local minima
         """
         if start == None:
@@ -148,10 +196,11 @@ class ExactLineNewton(OptimizationProblem):
             self.lineNewton = Newton(fline, 1)
 
         abest = self.lineNewton.argminAdaptive(start=0.1)
+        #abest = self.lineNewton.argmin(start=0.1)
         return (abest,x+abest*direction)
 
     def argmin(self,start=None,tolerance=0.001,maxit=1000):
-        if not start:
+        if start==None:
             start = scipy.zeros(self.shape)
         xold = start
         xnew = self.linesearch(xold)[1]
@@ -169,7 +218,7 @@ class ExactLineNewton(OptimizationProblem):
         (abest,xnext) = self.linesearch(startx)
 
         # Set up data for contour plot
-        delta=0.025
+        delta=0.05
         xx=numpy.arange(region[0],region[1],delta)
         yy=numpy.arange(region[0],region[1],delta)
         X,Y = numpy.meshgrid(xx,yy)
@@ -181,6 +230,9 @@ class ExactLineNewton(OptimizationProblem):
         pyplot.subplot(211)
         pyplot.hold(True)
         pyplot.contour(X,Y,z)
+        pyplot.title('Contour lines with first search line')
+        pyplot.xlabel('$x_1$')
+        pyplot.ylabel('$x_2$')
 
         # Starting point
         pyplot.plot(startx[0],startx[1],'o',label='$x_0$')
@@ -193,13 +245,19 @@ class ExactLineNewton(OptimizationProblem):
         pyplot.legend(loc=0)
 
 
+
         pyplot.subplot(212)
         pyplot.hold(True)
+        pyplot.xlabel('a')
         xx=scipy.linspace(0,2*abest)
         pyplot.plot(xx,[self.f(startx + ai*direction) for ai in xx],label="Value on search line")
         pyplot.plot(abest,self.f(startx + abest*direction),'o')
         pyplot.legend()
-        pyplot.show()
+
+
+        pyplot.figure()
+        super(ExactLineNewton,self).plot()
+        
 
     @classmethod
     def test(cls):
