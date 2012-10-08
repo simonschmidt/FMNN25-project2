@@ -90,13 +90,15 @@ class OptimizationProblem(object):
         """
         return self.f(self.argmin(start))
 
-    def plot(self,start=None,region=(-5.,5.)):
+    def plot(self,start=None,region=(-5.,5.),title=None):
         if self.shape != 2:
             raise NotImplementedError(u'only capable of plotting functions  ℝ² -> ℝ')
-        if not start:
+        if start == None:
             start = scipy.zeros((self.shape,))
 
         pyplot.subplot(211)
+        if title:
+            pyplot.suptitle(title)
         pyplot.subplots_adjust(hspace=1.)
         pyplot.title('Iteration progress')
         pyplot.xlabel('iteration')
@@ -129,7 +131,7 @@ class OptimizationProblem(object):
                 z[i,j]= self.f([x,y])
 
         pyplot.subplot(212)
-        pyplot.contour(X,Y,z)
+        pyplot.contour(X,Y,z,levels=z[75,range(0,150,3)],colors=pyplot.cm.jet(scipy.linspace(0,1,75)))
         pyplot.title('Contour lines with Search path')
         pyplot.xlabel('$x_1$')
         pyplot.ylabel('$x_2$')
@@ -142,7 +144,9 @@ class OptimizationProblem(object):
         pyplot.show()
 
     @classmethod
-    def test(cls,start=None):
+    def test(cls,start=None,title=None):
+        if not title:
+            title = cls.__name__
         # def rosenbrock(x):
         #     return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
         # elnrosen = ExactLineNewton(rosenbrock,2)
@@ -153,12 +157,13 @@ class OptimizationProblem(object):
         #     pass
 
         def f(x):
-            #return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
+            return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
             #return (x[0]-2.3)**2 + (x[1]+0.2)**2
-            return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+            #return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
             #return 0.5 * x[0]**2 + 2.5 * x[1]**2
+            #return scipy.exp((x[0]+1.)**2+(x[1]-2.3)**2)
         inst = cls(f,2)
-        inst.plot(start=start)
+        inst.plot(start=start,title=title)
         print "Argmin: %s" % inst.argmin(start=start)
         return inst
 
@@ -288,10 +293,10 @@ class ExactLineNewton(OptimizationProblem):
             (xold,xnew) = (xnew,self.linesearch(xnew)[1])
         return xnew
 
-    def plot(self,start=None,region=(-4.,4.)):
+    def plot(self,start=None,region=(-4.,4.),title=None):
         if self.shape != 2:
             raise NotImplementedError(u'only capable of plotting functions  ℝ² -> ℝ')
-        if not start:
+        if start == None:
             start = scipy.zeros((self.shape,))
         (abest,xnext) = self.linesearch(start)
 
@@ -334,7 +339,7 @@ class ExactLineNewton(OptimizationProblem):
 
 
         pyplot.figure()
-        super(ExactLineNewton,self).plot()
+        super(ExactLineNewton,self).plot(start=start,region=region,title=title)
         
 
 
@@ -363,8 +368,9 @@ class BFGS(Newton):
 
         #B = scipy.identity(self.shape)
         B = self.hessian(xold)
+        s = tolerance+1
         for it in xrange(maxit):
-            if (it != 0 and numpy.linalg.norm(s)<tolerance): break
+            if  numpy.linalg.norm(s)<tolerance: break
             ngrad = -1*self.gradient(xold)
             s = numpy.linalg.solve(B,ngrad)
 
