@@ -6,6 +6,8 @@ import numpy
 import pylab
 import matplotlib.pyplot as pyplot
 import matplotlib.mlab
+from chebyquad_problem import *
+from pprint import pprint
 
 class OptimizationProblem(object):
     """ ??? """
@@ -144,7 +146,7 @@ class OptimizationProblem(object):
         pyplot.show()
 
     @classmethod
-    def test(cls,start=None,title=None):
+    def test(cls,start=None,title=None,f=None,gradient=None):
         if not title:
             title = cls.__name__
         # def rosenbrock(x):
@@ -155,14 +157,14 @@ class OptimizationProblem(object):
         #     assert False, "Was able to argmin rosenbrock, should have caused problems with positive definiteness"
         # except numpy.linalg.LinAlgError:
         #     pass
-
-        def f(x):
-            return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
-            #return (x[0]-2.3)**2 + (x[1]+0.2)**2
-            #return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
-            #return 0.5 * x[0]**2 + 2.5 * x[1]**2
-            #return scipy.exp((x[0]+1.)**2+(x[1]-2.3)**2)
-        inst = cls(f,2)
+        if f==None:
+            def f(x):
+                return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
+                #return (x[0]-2.3)**2 + (x[1]+0.2)**2
+                #return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+                #return 0.5 * x[0]**2 + 2.5 * x[1]**2
+                #return scipy.exp((x[0]+1.)**2+(x[1]-2.3)**2)
+        inst = cls(f,2,gradient=gradient)
         inst.plot(start=start,title=title)
         print "Argmin: %s" % inst.argmin(start=start)
         return inst
@@ -392,4 +394,18 @@ def test():
     newt = Newton(f,3)
     print newt.hessian([1.,1.,1.])
     print newt.argmin(start=[1.0,2.0,1.5])
+
+def chebquad_test(n=2,start=None,digits=4):
+    start = scipy.ones(n)*0.0
+    result={}
+    for cls in [Newton,BroydenNewton,BadBroydenNewton,ExactLineNewton,DFP,BFGS]:
+        try:
+            result[cls.__name__]=map(lambda x: round(x,digits),
+                cls(f=chebyquad,shape=n,gradient=gradchebyquad).argmin(start=start))
+        except Exception:
+            result[cls.__name__]="failed"
+    result['fmin_bfgs']=scipy.optimize.fmin_bfgs(f=chebyquad,x0=start,fprime=gradchebyquad)
+    print "Cheb test n=%d"%n
+    pprint(result)
+    return result
 
