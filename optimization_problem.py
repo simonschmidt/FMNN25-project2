@@ -404,10 +404,10 @@ def chebquad_test(n=2,start=None,digits=4):
             arg = cls(f=chebyquad,shape=n,gradient=gradchebyquad).argmin(start=start)
             print (cls.__name__,chebyquad(arg))
             result[cls.__name__]=map(lambda x: round(x,digits),arg)
-        except Exception:
-            result[cls.__name__]="failed"
+        except Exception as e:
+            result[cls.__name__]=e
     result['fmin_bfgs']=scipy.optimize.fmin_bfgs(f=chebyquad,x0=start,fprime=gradchebyquad)
-    print "Cheb test n=%d"%n
+    print "Cheb test\nn=%d\nstart=%s" % (n,start)
     pprint(result)
     return result
 
