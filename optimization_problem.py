@@ -397,7 +397,7 @@ def test():
 
 def chebquad_test(n=2,start=None,digits=4):
     if start==None:
-        start = scipy.rand(4)
+        start = scipy.rand(n)
     result={}
     for cls in [Newton,BroydenNewton,BadBroydenNewton,ExactLineNewton,DFP,BFGS]:
         try:
