@@ -396,12 +396,14 @@ def test():
     print newt.argmin(start=[1.0,2.0,1.5])
 
 def chebquad_test(n=2,start=None,digits=4):
-    start = scipy.ones(n)*0.0
+    if start==None:
+        start = scipy.rand(4)
     result={}
     for cls in [Newton,BroydenNewton,BadBroydenNewton,ExactLineNewton,DFP,BFGS]:
         try:
-            result[cls.__name__]=map(lambda x: round(x,digits),
-                cls(f=chebyquad,shape=n,gradient=gradchebyquad).argmin(start=start))
+            arg = cls(f=chebyquad,shape=n,gradient=gradchebyquad).argmin(start=start)
+            print (cls.__name__,chebyquad(arg))
+            result[cls.__name__]=map(lambda x: round(x,digits),arg)
         except Exception:
             result[cls.__name__]="failed"
     result['fmin_bfgs']=scipy.optimize.fmin_bfgs(f=chebyquad,x0=start,fprime=gradchebyquad)
