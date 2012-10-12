@@ -354,17 +354,37 @@ class DFP(Newton):
     def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=1.0):
         xold = start if start != None else scipy.zeros(self.shape)
 
-        #B = scipy.identity(self.shape)
-        B = self.hessian(xold)
+        # Initial hessian inverse guess
+        B = scipy.identity(self.shape)
+
+        ngrad=(tolerance+1)*scipy.ones(self.shape)
         for it in xrange(maxit):
-            if (it != 0 and numpy.linalg.norm(s)<tolerance): break
+            if (it != 0 and numpy.linalg.norm(ngrad)<tolerance): break
+
             ngrad = -1*self.gradient(xold)
-            s = numpy.linalg.solve(B,ngrad)
+
+            s = numpy.dot(B,ngrad)
+            # Use scipy line search until implemented here
+            a=scipy.optimize.linesearch.line_search_wolfe2(\
+                self.f,\
+                self.gradient,\
+                xold,\
+                s,\
+                -1*ngrad\
+                )
+            s = a[0] * s
+
             xnew = xold + s
+            print numpy.linalg.norm(self.gradient(xnew))
+            if numpy.isnan(self.f(xnew)): break
+            if self.f(xnew)>self.f(xold):
+                 print "DFP break: worse value, it=%d"%it
+                 xnew=xold
+                 break
             y = self.gradient(xnew) + ngrad
-            stb = numpy.dot(s,B)
-            bs = numpy.dot(B,s)
-            B = B + numpy.outer(y,y)/numpy.dot(y,s) - numpy.outer(bs,stb)/numpy.dot(stb,s)
+            ytb = numpy.dot(y,B)
+            by = numpy.dot(B,y)
+            B = B + numpy.outer(s,s)/numpy.dot(y,s) - numpy.outer(by,ytb)/numpy.dot(ytb,y)
             xold = xnew
         return xnew
 
@@ -396,6 +416,7 @@ class BFGS(Newton):
             # Break when update gives worse value
             # (Line search should have given error)
             if self.f(xnew)>self.f(xold):
+                print "BFGS: worse value it=%d"%it
                 xnew=xold
                 break
             # And when getting nan
