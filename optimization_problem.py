@@ -375,7 +375,6 @@ class DFP(Newton):
             s = a[0] * s
 
             xnew = xold + s
-            print numpy.linalg.norm(self.gradient(xnew))
             if numpy.isnan(self.f(xnew)): break
             if self.f(xnew)>self.f(xold):
                  print "DFP break: worse value, it=%d"%it
@@ -398,12 +397,12 @@ class BFGS(Newton):
             ngrad = -1*self.gradient(xold)
 
             # TODO: Tolerance break here
-            # 
+            if (it != 0 and numpy.linalg.norm(ngrad)<tolerance): break
 
             s = numpy.dot(B,ngrad)
 
             # Use scipy line search until implemented here
-            a=scipy.optimize.linesearch.line_search_wolfe2(\
+            a=scipy.optimize.linesearch.line_search_wolfe2(
                 self.f,\
                 self.gradient,\
                 xold,\
@@ -429,10 +428,11 @@ class BFGS(Newton):
             # Using Sherman-Morisson updating
             ytb = numpy.dot(y,B)
             ys = numpy.dot(s,y)
-            ss = numpy.dot(s,s)
+            ss = numpy.outer(s,s)
             by = numpy.dot(B,y)
+            bys = numpy.outer(by,s)
 
-            B = B + (ys + numpy.dot(ytb,y))*ss/(ys*ys) - (numpy.dot(by,s)+numpy.dot(s,ytb))/ys
+            B = B + (1 + numpy.dot(ytb,y)/ys)*ss/ys - (bys+ numpy.transpose(bys))/ys
             xold = xnew
         return xnew
 
