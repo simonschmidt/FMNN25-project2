@@ -8,10 +8,14 @@ import matplotlib.pyplot as pyplot
 import matplotlib.mlab
 from chebyquad_problem import *
 from pprint import pprint
+try:
+    from prettytable import PrettyTable
+except ImportError:
+    pass
 
 class OptimizationProblem(object):
     """ ??? """
-    dx = 0.00001
+    dx = 0.000001
     def __init__(self, f, shape, gradient = None, hessian = None):
         """Solves an optimization problem, except that it doesn't
 
@@ -373,8 +377,11 @@ class BFGS(Newton):
         s = tolerance+1
         for it in xrange(maxit):
             if  numpy.linalg.norm(s)<tolerance: break
+
             ngrad = -1*self.gradient(xold)
             s = numpy.linalg.solve(B,ngrad)
+            # Could do a line search here:
+            # s = a * s
 
             xnew = xold + s
             y = self.gradient(xnew) + ngrad
@@ -384,6 +391,8 @@ class BFGS(Newton):
             bs = numpy.dot(B,s)
             ys = numpy.dot(s,y)
 
+            # Could use Sherman-Morisson here and avoid 
+            # the linalg.solve above
             B = B + (1+numpy.dot(stb,s)/ys)*numpy.outer(y,y)/ys - (numpy.dot(y,stb) + numpy.dot(bs,y))/ys
             xold = xnew
         return xnew
@@ -398,16 +407,36 @@ def test():
 def chebquad_test(n=2,start=None,digits=4):
     if start==None:
         start = scipy.rand(n)
-    result={}
+
+    # Store result like [['method1', argmin, f(argmin)],..]
+    result=[]
+
+    # Calculate for each class
     for cls in [Newton,BroydenNewton,BadBroydenNewton,ExactLineNewton,DFP,BFGS]:
         try:
             arg = cls(f=chebyquad,shape=n,gradient=gradchebyquad).argmin(start=start)
-            print (cls.__name__,chebyquad(arg))
-            result[cls.__name__]=map(lambda x: round(x,digits),arg)
+            fmin=chebyquad(arg)
+            arg=map(lambda x: round(x,digits),arg)
+            result.append([cls.__name__,arg,fmin])
         except Exception as e:
-            result[cls.__name__]=e
-    result['fmin_bfgs']=scipy.optimize.fmin_bfgs(f=chebyquad,x0=start,fprime=gradchebyquad)
-    print "Cheb test\nn=%d\nstart=%s" % (n,start)
-    pprint(result)
+            result.append([cls.__name__,e,'-'])
+
+
+    # For scipy BFGS
+    fminres=scipy.optimize.fmin_bfgs(f=chebyquad,x0=start,fprime=gradchebyquad,full_output=True,disp=False)
+    result.append([
+        'fmin_bfgs',
+        map(lambda x: round(x,digits),fminres[0]),
+        fminres[1] ])
+
+    print "Cheb test n=%d start=%s" % (n,start)
+    if 'PrettyTable' in globals():
+        pt = PrettyTable(['Method', 'Argmin', 'f'])
+        for r in result:
+            pt.add_row(r)
+        print pt
+    else:
+        pprint(result)
+
     return result
 
