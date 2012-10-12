@@ -13,7 +13,7 @@ http://www.maths.lth.se/na/courses/FMNN25/media/material/project02_.pdf
 * ~~Good Broyden~~
 * ~~Bad Broyden~~
 * ~~DFP~~
-* ~~BFGS~~ Could use line-search and Sherman-Morisson updating
+* ~~BFGS~~
 * ~~chebquad~~
 * ~~compare fmin_bfgs~~
 * study goodness of BFGS hessian approximation
