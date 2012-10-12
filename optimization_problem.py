@@ -369,31 +369,49 @@ class DFP(Newton):
         return xnew
 
 class BFGS(Newton):
-    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=1.0):
+    def argmin(self,start=None,tolerance=0.0001,maxit=1000):
         xold = start if start != None else scipy.zeros(self.shape)
 
-        #B = scipy.identity(self.shape)
-        B = self.hessian(xold)
-        s = tolerance+1
+        B = scipy.identity(self.shape)
+        
         for it in xrange(maxit):
-            if  numpy.linalg.norm(s)<tolerance: break
-
             ngrad = -1*self.gradient(xold)
-            s = numpy.linalg.solve(B,ngrad)
-            # Could do a line search here:
-            # s = a * s
 
+            # TODO: Tolerance break here
+            # 
+
+            s = numpy.dot(B,ngrad)
+
+            # Use scipy line search until implemented here
+            a=scipy.optimize.linesearch.line_search_wolfe2(\
+                self.f,\
+                self.gradient,\
+                xold,\
+                s,\
+                -1*ngrad\
+                )
+            s = a[0] * s
             xnew = xold + s
+
+            # Break when update gives worse value
+            # (Line search should have given error)
+            if self.f(xnew)>self.f(xold):
+                xnew=xold
+                break
+            # And when getting nan
+            if numpy.isnan(xnew).any():
+                xnew=xold
+                break
             y = self.gradient(xnew) + ngrad
 
             # Update hessian approximation
-            stb = numpy.dot(s,B)
-            bs = numpy.dot(B,s)
+            # Using Sherman-Morisson updating
+            ytb = numpy.dot(y,B)
             ys = numpy.dot(s,y)
+            ss = numpy.dot(s,s)
+            by = numpy.dot(B,y)
 
-            # Could use Sherman-Morisson here and avoid 
-            # the linalg.solve above
-            B = B + (1+numpy.dot(stb,s)/ys)*numpy.outer(y,y)/ys - (numpy.dot(y,stb) + numpy.dot(bs,y))/ys
+            B = B + (ys + numpy.dot(ytb,y))*ss/(ys*ys) - (numpy.dot(by,s)+numpy.dot(s,ytb))/ys
             xold = xnew
         return xnew
 
@@ -423,7 +441,7 @@ def chebquad_test(n=2,start=None,digits=4):
 
 
     # For scipy BFGS
-    fminres=scipy.optimize.fmin_bfgs(f=chebyquad,x0=start,fprime=gradchebyquad,full_output=True,disp=False)
+    fminres=scipy.optimize.fmin_bfgs(f=chebyquad,x0=start,fprime=gradchebyquad,full_output=True,disp=True)
     result.append([
         'fmin_bfgs',
         map(lambda x: round(x,digits),fminres[0]),
