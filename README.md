@@ -14,9 +14,9 @@ http://www.maths.lth.se/na/courses/FMNN25/media/material/project02_.pdf
 * ~~Bad Broyden~~
 * ~~DFP~~
 * ~~BFGS~~
-* ~~chebquad~~
-* ~~compare fmin_bfgs~~
-* study goodness of BFGS hessian approximation
+* ~~chebquad~~  (chebquad_test)
+* ~~compare fmin_bfgs~~ (chebquad_test)
+* ~~study goodness of BFGS hessian approximation~~ (hessian_test)
 
 
 Test on Rosenbrock Function

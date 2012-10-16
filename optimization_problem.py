@@ -153,19 +153,12 @@ class OptimizationProblem(object):
     def test(cls,start=None,title=None,f=None,gradient=None):
         if not title:
             title = cls.__name__
-        # def rosenbrock(x):
-        #     return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
-        # elnrosen = ExactLineNewton(rosenbrock,2)
-        # try:
-        #     elnrosen.argmin()
-        #     assert False, "Was able to argmin rosenbrock, should have caused problems with positive definiteness"
-        # except numpy.linalg.LinAlgError:
-        #     pass
+
         if f==None:
             def f(x):
-                return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
+                #return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
                 #return (x[0]-2.3)**2 + (x[1]+0.2)**2
-                #return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+                return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
                 #return 0.5 * x[0]**2 + 2.5 * x[1]**2
                 #return scipy.exp((x[0]+1.)**2+(x[1]-2.3)**2)
         inst = cls(f,2,gradient=gradient)
@@ -178,7 +171,7 @@ class OptimizationProblem(object):
 
 class Newton(OptimizationProblem):
     # typ klar
-    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=1.0):
+    def argmin(self,start=None,tolerance=0.0001,maxit=100,stepsize=1.0):
         if start == None:
             start = scipy.zeros(self.shape)
         xold = start
@@ -191,7 +184,7 @@ class Newton(OptimizationProblem):
         return xnew
 
 
-    def argminAdaptive(self,start=None,tolerance=0.0001,maxit=1000,stepsize=1.0):
+    def argminAdaptive(self,start=None,tolerance=0.0001,maxit=100,stepsize=1.0):
         """ Newton iteration adapting stepsize when overstepping local minima
         """
         if start == None:
@@ -223,6 +216,8 @@ class BroydenNewton(Newton):
 
             g_f = self.gradient(x_new)
 
+            if numpy.isnan(g_f).any(): break
+
             lhs_num = g_x - scipy.dot(inverse, g_f)
             lhs_den = scipy.dot(scipy.dot(g_x.T, inverse), g_f)
 
@@ -249,6 +244,8 @@ class BadBroydenNewton(Newton):
             if numpy.linalg.norm(g_x) < tolerance: break
 
             g_f = self.gradient(x_new)
+
+            if numpy.isnan(g_f).any(): break
 
             lhs_num = g_x - scipy.dot(inverse, g_f)
             lhs_den = scipy.dot(g_f.T, g_f)
@@ -351,7 +348,7 @@ class ExactLineNewton(OptimizationProblem):
 
 
 class DFP(Newton):
-    def argmin(self,start=None,tolerance=0.0001,maxit=1000,stepsize=1.0):
+    def argmin(self,start=None,tolerance=0.0001,maxit=100,stepsize=1.0):
         xold = start if start != None else scipy.zeros(self.shape)
 
         # Initial hessian inverse guess
@@ -376,10 +373,7 @@ class DFP(Newton):
 
             xnew = xold + s
             if numpy.isnan(self.f(xnew)): break
-            if self.f(xnew)>self.f(xold):
-                 print "DFP break: worse value, it=%d"%it
-                 xnew=xold
-                 break
+
             y = self.gradient(xnew) + ngrad
             ytb = numpy.dot(y,B)
             by = numpy.dot(B,y)
@@ -388,7 +382,7 @@ class DFP(Newton):
         return xnew
 
 class BFGS(Newton):
-    def argmin(self,start=None,tolerance=0.0001,maxit=1000):
+    def argmin(self,start=None,tolerance=0.0001,maxit=100,call=None):
         xold = start if start != None else scipy.zeros(self.shape)
 
         B = scipy.identity(self.shape)
@@ -396,7 +390,6 @@ class BFGS(Newton):
         for it in xrange(maxit):
             ngrad = -1*self.gradient(xold)
 
-            # TODO: Tolerance break here
             if (it != 0 and numpy.linalg.norm(ngrad)<tolerance): break
 
             s = numpy.dot(B,ngrad)
@@ -412,19 +405,15 @@ class BFGS(Newton):
             s = a[0] * s
             xnew = xold + s
 
-            # Break when update gives worse value
-            # (Line search should have given error)
-            if self.f(xnew)>self.f(xold):
-                print "BFGS: worse value it=%d"%it
-                xnew=xold
-                break
-            # And when getting nan
+
+            # Break on nan
             if numpy.isnan(xnew).any():
                 xnew=xold
                 break
+
             y = self.gradient(xnew) + ngrad
 
-            # Update hessian approximation
+            # Update inverse hessian approximation
             # Using Sherman-Morisson updating
             ytb = numpy.dot(y,B)
             ys = numpy.dot(s,y)
@@ -434,16 +423,57 @@ class BFGS(Newton):
 
             B = B + (1 + numpy.dot(ytb,y)/ys)*ss/ys - (bys+ numpy.transpose(bys))/ys
             xold = xnew
+            if call:
+                call(locals())
         return xnew
 
-def test():
-    def f(x):
-        return x[0]**2+x[1]**2+x[2]**2
-    newt = Newton(f,3)
-    print newt.hessian([1.,1.,1.])
-    print newt.argmin(start=[1.0,2.0,1.5])
+    def hessian_goodness(self,norm=None,plot=True,invhess=None,title=None):
+        """ Compare relative error of inverse hessian approximation to actual inverse
+
+            norm: 'fro', inf, -inf, 2, -2
+            plot: Plot relive error
+            invhess: Exact inverse hessian, by default uses inv(self.hessian(x))
+            title: plot title
+
+            returns list of relative errors
+        """
+        if norm==None:
+            norm='fro'
+        # Function that gets called each iteration in BFGS process
+        # Compares approximation and exact hessian
+        def c(loc):
+            approx=loc['B']
+
+            if invhess:
+                exact = invhess(loc['xnew'])
+            else:
+                exact = scipy.linalg.inv(self.hessian(loc['xnew']))
+
+            # Calculate relative error
+            c.res.append(numpy.linalg.norm(approx-exact,norm)/numpy.linalg.norm(exact,norm))
+        c.res=[]
+
+        self.argmin(call=c)
+
+        if plot:
+            pyplot.semilogy(c.res,label='$\\frac{||H^* - H||_{%s}}{||H||_{%s}}$' % (norm,norm))
+            pyplot.legend(loc=0)
+            pyplot.xlabel('iteration')
+            pyplot.ylabel('error')
+            if title==None:
+                pyplot.title('relative error for BFGS inverse hessian approximation')
+            else:
+                pyplot.title(title)
+            pyplot.show()
+        return c.res
+
 
 def chebquad_test(n=2,start=None,digits=4):
+    """
+        Run the available optimizers on chebyquad function
+        start: starting point, default random uniform in [0,1]**shape
+        digits: digits in output
+    """
     if start==None:
         start = scipy.rand(n)
 
@@ -479,3 +509,18 @@ def chebquad_test(n=2,start=None,digits=4):
 
     return result
 
+def hessian_test(norm=None):
+    """
+        Show goodness of BFGS inverse hessian on rosenbrock function
+    """
+    def f(x):
+        return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+    def invhess(x):
+        (x,y) = x
+        return numpy.array([
+            [1/(2 + 400*x**2 - 400*y), x/(1 + 200*x**2 - 200*y)],
+            [x/(1+200*x**2-200*y),1/200+(2*x**2)/(1+200*x**2-200*y) ]
+            ])
+
+
+    return BFGS(f=f, shape=2).hessian_goodness(invhess=invhess,title='BFGS inverse hessian approximation for rosenbrock function',norm=norm)
