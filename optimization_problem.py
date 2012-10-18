@@ -5,16 +5,15 @@ import scipy.linalg
 import numpy
 import pylab
 import matplotlib.pyplot as pyplot
-import matplotlib.mlab
-from chebyquad_problem import *
 from pprint import pprint
+from chebyquad_problem import *
 try:
     from prettytable import PrettyTable
 except ImportError:
     pass
 
 class OptimizationProblem(object):
-    """ ??? """
+    """ Base class for optimization problems, do not use directly """
     dx = 0.000001
     def __init__(self, f, shape, gradient = None, hessian = None):
         """Solves an optimization problem, except that it doesn't
@@ -170,7 +169,7 @@ class OptimizationProblem(object):
 
 
 class Newton(OptimizationProblem):
-    # typ klar
+
     def argmin(self,start=None,tolerance=0.0001,maxit=100,stepsize=1.0):
         if start == None:
             start = scipy.zeros(self.shape)
@@ -325,7 +324,8 @@ class ExactLineNewton(OptimizationProblem):
         # Search line
         direction=numpy.dot(self.hessian(start),self.gradient(start))
         pyplot.plot([start[0]-0.5*abest*direction[0],start[0]+1.5*abest*direction[0]],
-                    [start[1]-0.5*abest*direction[1],start[1]+1.5*abest*direction[1]],'-',label="search line")
+                    [start[1]-0.5*abest*direction[1],start[1]+1.5*abest*direction[1]],
+                    '-',label="search line")
         # Best point
         pyplot.plot(xnext[0],xnext[1],'o',label="$x_0 + a^* * direction$")
         pyplot.legend(loc=0)
@@ -349,32 +349,34 @@ class ExactLineNewton(OptimizationProblem):
 
 class DFP(Newton):
     def argmin(self,start=None,tolerance=0.0001,maxit=100,stepsize=1.0):
-        xold = start if start != None else scipy.zeros(self.shape)
+        xold = start if start is not None else scipy.zeros(self.shape)
 
         # Initial hessian inverse guess
         B = scipy.identity(self.shape)
 
-        ngrad=(tolerance+1)*scipy.ones(self.shape)
+        grad=(tolerance+1)*scipy.ones(self.shape)
         for it in xrange(maxit):
-            if (it != 0 and numpy.linalg.norm(ngrad)<tolerance): break
+            if (it != 0 and numpy.linalg.norm(grad)<tolerance): break
 
-            ngrad = -1*self.gradient(xold)
+            grad = self.gradient(xold)
 
-            s = numpy.dot(B,ngrad)
+            # Search direction
+            s = numpy.dot(B,-1*grad)
+
             # Use scipy line search until implemented here
-            a=scipy.optimize.linesearch.line_search_wolfe2(\
-                self.f,\
-                self.gradient,\
-                xold,\
-                s,\
-                -1*ngrad\
+            a=scipy.optimize.linesearch.line_search_wolfe2(
+                self.f,
+                self.gradient,
+                xold,
+                s,
+                grad
                 )
             s = a[0] * s
 
             xnew = xold + s
             if numpy.isnan(self.f(xnew)): break
 
-            y = self.gradient(xnew) + ngrad
+            y = self.gradient(xnew) -grad
             ytb = numpy.dot(y,B)
             by = numpy.dot(B,y)
             B = B + numpy.outer(s,s)/numpy.dot(y,s) - numpy.outer(by,ytb)/numpy.dot(ytb,y)
@@ -383,24 +385,33 @@ class DFP(Newton):
 
 class BFGS(Newton):
     def argmin(self,start=None,tolerance=0.0001,maxit=100,call=None):
-        xold = start if start != None else scipy.zeros(self.shape)
+        """
+            Find a minimum
+
+            start: starting point, default 0
+            tolerance: break when ||gradient|| is less than
+            maxit: iteration limit
+            call: function to call at end of each iteration, is passed locals() as argument
+
+        """
+        xold = start if start is not None else scipy.zeros(self.shape)
 
         B = scipy.identity(self.shape)
         
         for it in xrange(maxit):
-            ngrad = -1*self.gradient(xold)
+            grad = self.gradient(xold)
 
-            if (it != 0 and numpy.linalg.norm(ngrad)<tolerance): break
+            if (it != 0 and numpy.linalg.norm(grad)<tolerance): break
 
-            s = numpy.dot(B,ngrad)
+            s = numpy.dot(B,-1*grad)
 
             # Use scipy line search until implemented here
             a=scipy.optimize.linesearch.line_search_wolfe2(
-                self.f,\
-                self.gradient,\
-                xold,\
-                s,\
-                -1*ngrad\
+                self.f,
+                self.gradient,
+                xold,
+                s,
+                grad
                 )
             s = a[0] * s
             xnew = xold + s
@@ -411,7 +422,7 @@ class BFGS(Newton):
                 xnew=xold
                 break
 
-            y = self.gradient(xnew) + ngrad
+            y = self.gradient(xnew) - grad
 
             # Update inverse hessian approximation
             # Using Sherman-Morisson updating
@@ -437,8 +448,9 @@ class BFGS(Newton):
 
             returns list of relative errors
         """
-        if norm==None:
+        if norm is None:
             norm='fro'
+
         # Function that gets called each iteration in BFGS process
         # Compares approximation and exact hessian
         def c(loc):
@@ -471,10 +483,11 @@ class BFGS(Newton):
 def chebquad_test(n=2,start=None,digits=4):
     """
         Run the available optimizers on chebyquad function
-        start: starting point, default random uniform in [0,1]**shape
+        start: starting point, default: random uniform in [0,1]**shape
         digits: digits in output
     """
-    if start==None:
+
+    if start is None:
         start = scipy.rand(n)
 
     # Store result like [['method1', argmin, f(argmin)],..]
