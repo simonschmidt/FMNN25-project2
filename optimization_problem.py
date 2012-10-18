@@ -344,8 +344,51 @@ class ExactLineNewton(OptimizationProblem):
         pyplot.figure()
         super(ExactLineNewton,self).plot(start=start,region=region,title=title)
         
+class InexactLineMethod(OptimizationProblem):
 
+    def linesearch(self,x, maxit=10):
+        t1=9
+        fbar = 0
+        a = numpy.zeros(maxit+1)
+        b = numpy.zeros(maxit+1)
+        direction = numpy.dot(self.hessian(x),self.gradient(x))
+        fline = lambda a: self.f(x+a*direction)
+        fgrad = lambda a: numpy.dot(self.gradient(x+a*direction),direction)
 
+        mu = (-fline(0))/(fgrad(0))
+        a[1] = mu/2        
+
+        it=0
+        for i in xrange(1, maxit):
+            it+=1
+            fai=fline(a[i])
+            if fai<=fbar:
+                break
+            if fai>fline(0)+a[i]*fgrad(0) or fai>=fline(a[i-1]):
+                a[i]=a[i-1]
+                b[i]=a[i]
+            fPrimAi=fgrad(a[i])
+            if abs(fPrimAi) <= fgrad(0):
+                break
+            if fPrimAi>=0:
+                a[i]=a[i]
+                b[i]=a[i-1]
+            if mu<=2*a[i]-a[i-1]:
+                a[i+1]=mu
+            else:
+                a[i+1]=(min(mu, a[i]+t1*(a[i]-a[i-1])) - 2*a[i]-a[i-1])/2
+        return (a[it], x+a[it]*direction)
+
+    def argmin(self, start=None, tolerance=1e-3, maxit=1000):
+        if start==None:
+            start = scipy.zeros(self.shape)
+        xold = start
+        xnew = self.linesearch(xold)[1]
+        for it in xrange(maxit):
+            if numpy.linalg.norm(xold-xnew)<tolerance:
+                break
+            (xold,xnew) = (xnew,self.linesearch(xnew)[1])
+        return xnew
 
 class DFP(Newton):
     def argmin(self,start=None,tolerance=0.0001,maxit=100,stepsize=1.0):
