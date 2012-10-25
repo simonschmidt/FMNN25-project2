@@ -156,8 +156,8 @@ class OptimizationProblem(object):
         if f==None:
             def f(x):
                 #return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
-                #return (x[0]-2.3)**2 + (x[1]+0.2)**2
-                return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+                return (x[0]-2.3)**2 + (x[1]+0.2)**2
+                #return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
                 #return 0.5 * x[0]**2 + 2.5 * x[1]**2
                 #return scipy.exp((x[0]+1.)**2+(x[1]-2.3)**2)
         inst = cls(f,2,gradient=gradient)
@@ -349,6 +349,8 @@ class InexactLineMethod(OptimizationProblem):
     def linesearch(self,x, maxit=10):
         t1=9
         fbar = 0
+        sigma = 0.1
+        rho = 0.01
         a = numpy.zeros(maxit+1)
         b = numpy.zeros(maxit+1)
         direction = numpy.dot(self.hessian(x),self.gradient(x))
@@ -364,11 +366,11 @@ class InexactLineMethod(OptimizationProblem):
             fai=fline(a[i])
             if fai<=fbar:
                 break
-            if fai>fline(0)+a[i]*fgrad(0) or fai>=fline(a[i-1]):
+            if fai>fline(0)+a[i]*rho*fgrad(0) or fai>=fline(a[i-1]):
                 a[i]=a[i-1]
                 b[i]=a[i]
             fPrimAi=fgrad(a[i])
-            if abs(fPrimAi) <= -fgrad(0):
+            if abs(fPrimAi) <= -sigma*fgrad(0):
                 break
             if fPrimAi>=0:
                 a[i]=a[i]
@@ -376,10 +378,10 @@ class InexactLineMethod(OptimizationProblem):
             if mu<=2*a[i]-a[i-1]:
                 a[i+1]=mu
             else:
-                #a[i+1]=(min(mu, a[i]+t1*(a[i]-a[i-1])) - 2*a[i]-a[i-1])/2
                 seq = linspace(min(mu, a[i]+t1*(a[i]-a[i-1])),2*a[i]-a[i-1],10)
-                fseq = fline(seq)
-                a[i+1] = seq[feq.argmin()]
+                fseq = array([fline(seq[i]) for i in xrange(len(seq))])
+                a[i+1] = seq[fseq.argmin()]
+        print (a[it], x+a[it]*direction)
         return (a[it], x+a[it]*direction)
 
     def argmin(self, start=None, tolerance=1e-3, maxit=1000):
