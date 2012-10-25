@@ -7,7 +7,7 @@ http://www.maths.lth.se/na/courses/FMNN25/media/material/project02_.pdf
 * ~~Optimization problem class~~
 * ~~Classical Newton~~
 * ~~Newton + Exact line search~~
-* Inexact line search
+* ~~Inexact line search~~
 * Task 7
 * Provide newton's method with inexact line search option
 * ~~Good Broyden~~

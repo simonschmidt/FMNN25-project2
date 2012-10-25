@@ -156,9 +156,9 @@ class OptimizationProblem(object):
         if f==None:
             def f(x):
                 #return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
-                return (x[0]-2.3)**2 + (x[1]+0.2)**2
+                #return (x[0]-2.3)**2 + (x[1]+0.2)**2
                 #return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
-                #return 0.5 * x[0]**2 + 2.5 * x[1]**2
+                return 0.5 * x[0]**2 + 2.5 * x[1]**2
                 #return scipy.exp((x[0]+1.)**2+(x[1]-2.3)**2)
         inst = cls(f,2,gradient=gradient)
         inst.plot(start=start,title=title)
@@ -347,6 +347,14 @@ class ExactLineNewton(OptimizationProblem):
 class InexactLineMethod(OptimizationProblem):
 
     def linesearch(self,x, maxit=10):
+        """
+        Does one step in the inexact line method to find a small value of f on the line
+            Arguments:
+                x = starting point
+                maxit = number of iterations
+            returns:
+                (abest, xnext)
+        """
         t1=9
         fbar = 0
         sigma = 0.1
@@ -378,10 +386,10 @@ class InexactLineMethod(OptimizationProblem):
             if mu<=2*a[i]-a[i-1]:
                 a[i+1]=mu
             else:
+                # looks at values of f in 10 places in the interval and takes the one that is the smallest
                 seq = linspace(min(mu, a[i]+t1*(a[i]-a[i-1])),2*a[i]-a[i-1],10)
                 fseq = array([fline(seq[i]) for i in xrange(len(seq))])
                 a[i+1] = seq[fseq.argmin()]
-        print (a[it], x+a[it]*direction)
         return (a[it], x+a[it]*direction)
 
     def argmin(self, start=None, tolerance=1e-3, maxit=1000):
