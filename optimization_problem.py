@@ -368,7 +368,7 @@ class InexactLineMethod(OptimizationProblem):
                 a[i]=a[i-1]
                 b[i]=a[i]
             fPrimAi=fgrad(a[i])
-            if abs(fPrimAi) <= fgrad(0):
+            if abs(fPrimAi) <= -fgrad(0):
                 break
             if fPrimAi>=0:
                 a[i]=a[i]
@@ -376,7 +376,10 @@ class InexactLineMethod(OptimizationProblem):
             if mu<=2*a[i]-a[i-1]:
                 a[i+1]=mu
             else:
-                a[i+1]=(min(mu, a[i]+t1*(a[i]-a[i-1])) - 2*a[i]-a[i-1])/2
+                #a[i+1]=(min(mu, a[i]+t1*(a[i]-a[i-1])) - 2*a[i]-a[i-1])/2
+                seq = linspace(min(mu, a[i]+t1*(a[i]-a[i-1])),2*a[i]-a[i-1],10)
+                fseq = fline(seq)
+                a[i+1] = seq[feq.argmin()]
         return (a[it], x+a[it]*direction)
 
     def argmin(self, start=None, tolerance=1e-3, maxit=1000):
