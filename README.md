@@ -8,8 +8,8 @@ http://www.maths.lth.se/na/courses/FMNN25/media/material/project02_.pdf
 * ~~Classical Newton~~
 * ~~Newton + Exact line search~~
 * ~~Inexact line search~~
-* Task 7
-* Provide newton's method with inexact line search option
+* ~~Task 7~~
+* ~~Provide newton's method with inexact line search option~~
 * ~~Good Broyden~~
 * ~~Bad Broyden~~
 * ~~DFP~~

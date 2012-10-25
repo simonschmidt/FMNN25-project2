@@ -157,8 +157,8 @@ class OptimizationProblem(object):
             def f(x):
                 #return scipy.sqrt((x[0]+2.1)**2 + (x[1]-2.2)**2) + x[0]**2
                 #return (x[0]-2.3)**2 + (x[1]+0.2)**2
-                #return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
-                return 0.5 * x[0]**2 + 2.5 * x[1]**2
+                return 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+                #return 0.5 * x[0]**2 + 2.5 * x[1]**2
                 #return scipy.exp((x[0]+1.)**2+(x[1]-2.3)**2)
         inst = cls(f,2,gradient=gradient)
         inst.plot(start=start,title=title)
@@ -170,17 +170,20 @@ class OptimizationProblem(object):
 
 class Newton(OptimizationProblem):
 
-    def argmin(self,start=None,tolerance=0.0001,maxit=100,stepsize=1.0):
-        if start == None:
-            start = scipy.zeros(self.shape)
-        xold = start
-        xnew = xold - numpy.linalg.solve(self.hessian(xold),self.gradient(xold))
-        for it in xrange(maxit):
-            if numpy.linalg.norm(xold - xnew)<tolerance:
-                break
-            chol = scipy.linalg.cho_factor(self.hessian(xold))
-            (xold, xnew) = (xnew,xold - stepsize*scipy.linalg.cho_solve(chol,self.gradient(xold)))
-        return xnew
+    def argmin(self,start=None,tolerance=0.0001,maxit=100,stepsize=1.0,exact=False):
+        if exact: 
+            if start == None:
+                start = scipy.zeros(self.shape)
+            xold = start
+            xnew = xold - numpy.linalg.solve(self.hessian(xold),self.gradient(xold))
+            for it in xrange(maxit):
+                if numpy.linalg.norm(xold - xnew)<tolerance:
+                    break
+                chol = scipy.linalg.cho_factor(self.hessian(xold))
+                (xold, xnew) = (xnew,xold - stepsize*scipy.linalg.cho_solve(chol,self.gradient(xold)))
+            return xnew
+        else:
+            return InexactLineMethod(self.f,self.shape,self.gradient,self.hessian,).argmin(start,tolerance,maxit)
 
 
     def argminAdaptive(self,start=None,tolerance=0.0001,maxit=100,stepsize=1.0):
@@ -346,7 +349,7 @@ class ExactLineNewton(OptimizationProblem):
         
 class InexactLineMethod(OptimizationProblem):
 
-    def linesearch(self,x, maxit=10):
+    def linesearch(self,x, maxit=10,t1=9,fbar=0,sigma=0.1,rho=0.01):
         """
         Does one step in the inexact line method to find a small value of f on the line
             Arguments:
@@ -355,10 +358,6 @@ class InexactLineMethod(OptimizationProblem):
             returns:
                 (abest, xnext)
         """
-        t1=9
-        fbar = 0
-        sigma = 0.1
-        rho = 0.01
         a = numpy.zeros(maxit+1)
         b = numpy.zeros(maxit+1)
         direction = numpy.dot(self.hessian(x),self.gradient(x))
@@ -392,7 +391,7 @@ class InexactLineMethod(OptimizationProblem):
                 a[i+1] = seq[fseq.argmin()]
         return (a[it], x+a[it]*direction)
 
-    def argmin(self, start=None, tolerance=1e-3, maxit=1000):
+    def argmin(self, start=None,tolerance=1e-3,maxit=1000,t1=9,fbar=0,sigma=0.1,rho=0.01):
         if start==None:
             start = scipy.zeros(self.shape)
         xold = start
